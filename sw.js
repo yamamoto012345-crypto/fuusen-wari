@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fuusen-wari-v1';
+const CACHE_NAME = 'fuusen-wari-v2';
 const PRECACHE = ['./index.html', './app.js', './style.css', './manifest.json', './icons/icon.svg'];
 
 self.addEventListener('install', (e) => {
