@@ -85,6 +85,28 @@ function beep(freq, slide = 2, vol = .25) {
   } catch (e) { /* 音が出なくてもゲームは続ける */ }
 }
 
+// 風船を割ったときの短い振動。Android は Vibration API、iPhone(Safari 17.4+) は隠しスイッチの切り替えによる触覚で代用
+let hapticLabel = null;
+function haptic() {
+  try {
+    if (navigator.vibrate) {
+      navigator.vibrate(15);
+      return;
+    }
+    if (!hapticLabel) {
+      hapticLabel = document.createElement('label');
+      hapticLabel.setAttribute('aria-hidden', 'true');
+      hapticLabel.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.setAttribute('switch', '');
+      hapticLabel.appendChild(input);
+      document.body.appendChild(hapticLabel);
+    }
+    hapticLabel.click();
+  } catch (e) { /* 振動できない端末では何もしない */ }
+}
+
 function burst(x, y) {
   for (let i = 0; i < 8; i++) {
     const p = document.createElement('div');
@@ -130,6 +152,7 @@ function spawn() {
     const r = b.getBoundingClientRect();
     burst(r.left + r.width / 2, r.top + r.height / 2);
     beep(300 + Math.random() * 500);
+    haptic();
     score++;
     scoreEl.textContent = '⭐ ' + score;
     b.remove();
