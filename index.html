@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
 <title>ふうせんわり</title>
-<meta name="description" content="ふうせんをタッチして わるだけ。うえに とどいたら おしまい！" />
+<meta name="description" content="ふうせんをタッチして わるだけ。うえに とどいたら おしまい！ ようじモード／おとなモード" />
 <meta name="theme-color" content="#4cc9f0" />
 <link rel="manifest" href="manifest.json" />
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
@@ -17,10 +17,13 @@
     <div id="best">🏆 0</div>
   </div>
 
-  <div id="start" role="button" aria-label="スタート">
-    <div class="big">ふうせんを<br>タッチ！</div>
+  <div id="start">
+    <div class="big">ふうせんわり</div>
     <div class="small">うえに とどいたら おしまい</div>
-    <div class="small">ここをタッチしてスタート</div>
+    <div class="modes">
+      <button type="button" class="modeBtn kid" data-mode="kid">🧸<br>ようじ</button>
+      <button type="button" class="modeBtn adult" data-mode="adult">🔥<br>おとな</button>
+    </div>
   </div>
 
   <div id="over">
@@ -28,7 +31,9 @@
     <div id="newRecord" hidden>🎉 しんきろく！ 🎉</div>
     <div class="result"><span id="overScore">⭐ 0</span></div>
     <div class="result best"><span id="overBest">🏆 0</span></div>
+    <div class="result time"><span id="overTime">⏱ 0:00</span></div>
     <button id="retry" type="button">もういっかい</button>
+    <button id="change" type="button">モードをかえる</button>
   </div>
 
   <script src="app.js"></script>

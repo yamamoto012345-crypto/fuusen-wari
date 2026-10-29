@@ -1,13 +1,32 @@
 const COLORS = ['#ff5c8a', '#ffb703', '#4cc9f0', '#7bd957', '#b388ff', '#ff8c42'];
 const STARS = ['⭐', '✨', '🌟', '💖', '🎈'];
-const BEST_KEY = 'fuusen-wari-best';
 
-// むずかしさ: 最初の EASY_SEC 秒は一定、その後 RAMP_SEC 秒かけて少しずつ速くなり、頭打ちになる
-const EASY_SEC = 30;
-const RAMP_SEC = 120;
-const SPAWN_START_MS = 1100;
-const SPAWN_MIN_MS = 350;
+// モードごとの設定
+//  easy/ramp : 最初の easy 秒は一定、その後 ramp 秒かけて少しずつ速くなり、頭打ちになる
+//  spawnStart/spawnMin : 風船の出る間隔(ms)。難しくなるほど spawnMin に近づく
+//  dur : 画面外までの所要時間(ms) = base + random*range（上端に着くまではこの約7割）。cut は最高難度での短縮率
+//  size : 風船の大きさ倍率 = base + random*range
+//  おとな: 最後は風船が出る数（約7個/秒）が人の押せる数を超えるので、だいたい1〜3分で終わる
+//          （手元のシミュレーションでは、1秒に3回押す人で約1分45秒、6回押す人で約2分30秒）
+const MODES = {
+  kid: {
+    bestKey: 'fuusen-wari-best',
+    easy: 30, ramp: 120,
+    spawnStart: 1100, spawnMin: 350,
+    dur: { base: 9000, range: 5000, cut: 0.55 },
+    size: { base: 0.8, range: 0.7 },
+  },
+  adult: {
+    bestKey: 'fuusen-wari-best-adult',
+    easy: 0, ramp: 160,
+    spawnStart: 750, spawnMin: 140,
+    dur: { base: 5500, range: 2500, cut: 0.6 },
+    size: { base: 0.6, range: 0.5 },
+  },
+};
 
+let modeName = 'kid';
+let mode = MODES.kid;
 let score = 0;
 let best = 0;
 let running = false;
@@ -16,28 +35,36 @@ let untilSpawn = 0;
 let lastTs = 0;
 let audio = null;
 
-const scoreEl = document.getElementById('score');
-const bestEl = document.getElementById('best');
-const startEl = document.getElementById('start');
-const overEl = document.getElementById('over');
-const overScoreEl = document.getElementById('overScore');
-const overBestEl = document.getElementById('overBest');
-const newRecordEl = document.getElementById('newRecord');
-const retryEl = document.getElementById('retry');
+const $ = (id) => document.getElementById(id);
+const scoreEl = $('score');
+const bestEl = $('best');
+const startEl = $('start');
+const overEl = $('over');
+const overScoreEl = $('overScore');
+const overBestEl = $('overBest');
+const overTimeEl = $('overTime');
+const newRecordEl = $('newRecord');
+const retryEl = $('retry');
+const changeEl = $('change');
 
-function loadBest() {
+function loadBest(key) {
   try {
-    const v = parseInt(localStorage.getItem(BEST_KEY), 10);
+    const v = parseInt(localStorage.getItem(key), 10);
     return Number.isFinite(v) && v > 0 ? v : 0;
   } catch (e) { return 0; }
 }
 
-function saveBest(v) {
-  try { localStorage.setItem(BEST_KEY, String(v)); } catch (e) { /* 保存できなくても遊べる */ }
+function saveBest(key, v) {
+  try { localStorage.setItem(key, String(v)); } catch (e) { /* 保存できなくても遊べる */ }
 }
 
 function showBest() {
   bestEl.textContent = '🏆 ' + best;
+}
+
+function formatTime(sec) {
+  const s = Math.floor(sec);
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
 function beep(freq, slide = 2, vol = .25) {
@@ -78,21 +105,20 @@ function burst(x, y) {
 
 // 0（やさしい）〜 1（いちばん むずかしい）
 function level() {
-  return Math.min(1, Math.max(0, (elapsed - EASY_SEC) / RAMP_SEC));
+  return Math.min(1, Math.max(0, (elapsed - mode.easy) / mode.ramp));
 }
 
 function spawn() {
   const b = document.createElement('div');
   b.className = 'b';
-  const size = 0.8 + Math.random() * 0.7;
+  const size = mode.size.base + Math.random() * mode.size.range;
   b.style.width = 110 * size + 'px';
   b.style.height = 140 * size + 'px';
-  b.style.left = Math.random() * Math.max(0, innerWidth - 130) + 'px';
+  b.style.left = Math.random() * Math.max(0, innerWidth - 130 * size) + 'px';
   b.style.background = COLORS[Math.floor(Math.random() * COLORS.length)];
   document.body.appendChild(b);
 
-  // 画面外までの所要時間。上端に着くまでは、この約7割（はじめは 約6〜10秒、いちばん むずかしいと 約3〜4.5秒）
-  const duration = (9000 + Math.random() * 5000) * (1 - 0.55 * level());
+  const duration = (mode.dur.base + Math.random() * mode.dur.range) * (1 - mode.dur.cut * level());
   b.animate(
     [{ transform: 'translateY(0)' }, { transform: `translateY(${-(innerHeight + 350)}px)` }],
     { duration, easing: 'linear', fill: 'forwards' }
@@ -119,7 +145,7 @@ function tick(ts) {
   untilSpawn -= dt;
   if (untilSpawn <= 0) {
     spawn();
-    untilSpawn = SPAWN_START_MS - (SPAWN_START_MS - SPAWN_MIN_MS) * level();
+    untilSpawn = mode.spawnStart - (mode.spawnStart - mode.spawnMin) * level();
   }
 
   // 風船が1つでも画面の上に着いたらおしまい
@@ -140,18 +166,27 @@ function gameOver() {
   const isNew = score > best;
   if (isNew) {
     best = score;
-    saveBest(best);
+    saveBest(mode.bestKey, best);
     showBest();
   }
   overScoreEl.textContent = '⭐ ' + score;
   overBestEl.textContent = '🏆 ' + best;
+  overTimeEl.textContent = '⏱ ' + formatTime(elapsed);
   newRecordEl.hidden = !(isNew && score > 0);
   retryEl.disabled = true;
+  changeEl.disabled = true;
   overEl.style.display = 'flex';
-  setTimeout(() => { retryEl.disabled = false; }, 700); // 連打で すぐ再開しないように
+  setTimeout(() => { retryEl.disabled = false; changeEl.disabled = false; }, 700); // 連打で すぐ再開しないように
 }
 
-function begin() {
+function begin(name) {
+  if (name) {
+    modeName = name;
+    mode = MODES[name];
+    best = loadBest(mode.bestKey);
+    showBest();
+    document.body.dataset.mode = name;
+  }
   document.querySelectorAll('.b, .p').forEach((el) => el.remove());
   score = 0;
   elapsed = 0;
@@ -165,18 +200,34 @@ function begin() {
   requestAnimationFrame(tick);
 }
 
+function backToStart() {
+  document.querySelectorAll('.b, .p').forEach((el) => el.remove());
+  overEl.style.display = 'none';
+  startEl.style.display = 'flex';
+}
+
 document.addEventListener('visibilitychange', () => {
   if (!running) return;
   document.getAnimations().forEach((a) => (document.hidden ? a.pause() : a.play()));
 });
 
-startEl.addEventListener('pointerdown', begin);
+document.querySelectorAll('[data-mode]').forEach((btn) => {
+  if (btn === document.body) return;
+  btn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    begin(btn.dataset.mode);
+  });
+});
 retryEl.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   if (!retryEl.disabled) begin();
 });
+changeEl.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  if (!changeEl.disabled) backToStart();
+});
 
-best = loadBest();
+best = loadBest(mode.bestKey);
 showBest();
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

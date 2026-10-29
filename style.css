@@ -84,6 +84,47 @@ html, body {
   box-shadow: 0 8px 0 #c93a64;
   cursor: pointer;
 }
+.result.time { font-size: clamp(28px, 6vw, 56px); color: #4a8fb8; }
+
+.modes {
+  display: flex;
+  gap: 5vw;
+  margin-top: 40px;
+}
+.modeBtn {
+  padding: .3em .9em;
+  font-family: inherit;
+  font-size: clamp(28px, 7vw, 64px);
+  font-weight: bold;
+  line-height: 1.3;
+  color: #fff;
+  border: 0;
+  border-radius: 28px;
+  cursor: pointer;
+}
+.modeBtn.kid { background: #ffb703; box-shadow: 0 8px 0 #c98700; }
+.modeBtn.adult { background: #7a3cff; box-shadow: 0 8px 0 #4d20b5; }
+.modeBtn:active { transform: translateY(6px); box-shadow: 0 2px 0 rgba(0, 0, 0, .3); }
+
+#change {
+  margin-top: 18px;
+  padding: .3em 1em;
+  font-family: inherit;
+  font-size: clamp(20px, 4.5vw, 40px);
+  font-weight: bold;
+  color: #4a8fb8;
+  background: #fff;
+  border: 3px solid #4a8fb8;
+  border-radius: 999px;
+  cursor: pointer;
+}
+#change:disabled { opacity: .5; }
+
+body[data-mode="adult"] {
+  background: linear-gradient(#2b2a5c, #6a5acd);
+}
+body[data-mode="adult"] #hud { text-shadow: 3px 3px 0 #1d1c44; }
+
 #retry:disabled { opacity: .5; }
 #retry:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 2px 0 #c93a64; }
 
